@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ohlcv-cache"
+version = "1.0.0"
+description = "High-performance OHLCV data compression for trading and backtesting"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Stefan Siebert (STS1983)", email = "stefan@example.com"}
+]
+keywords = [
+    "trading",
+    "backtesting",
+    "compression",
+    "ohlcv",
+    "cryptocurrency",
+    "finance",
+    "quantitative"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+yaml = [
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/STS1983/ohlcv-cache"
+Repository = "https://github.com/STS1983/ohlcv-cache.git"
+Issues = "https://github.com/STS1983/ohlcv-cache/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ohlcv_cache*"]
+
+[tool.setuptools.package-data]
+ohlcv_cache = ["*.md", "*.txt"]
+
+[tool.pytest.ini_options]
+testpaths = ["ohlcv_cache"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4"]
+ignore = ["E501"]
