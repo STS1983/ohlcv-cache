@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ohlcv-cache"
-version = "1.0.0"
+version = "2.0.0"
 description = "High-performance OHLCV data compression for trading and backtesting"
 readme = "README.md"
 license = {text = "MIT"}
@@ -21,7 +21,7 @@ keywords = [
     "quantitative"
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Financial and Insurance Industry",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
@@ -56,11 +56,8 @@ Issues = "https://github.com/STS1983/ohlcv-cache/issues"
 where = ["."]
 include = ["ohlcv_cache*"]
 
-[tool.setuptools.package-data]
-ohlcv_cache = ["*.md", "*.txt"]
-
 [tool.pytest.ini_options]
-testpaths = ["ohlcv_cache"]
+testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"

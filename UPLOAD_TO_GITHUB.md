@@ -1,3 +1,18 @@
+---
+title: 📤 Upload to GitHub – Quick Guide
+created: '2026-06-09T14:34:15'
+updated: '2026-06-09T14:34:15'
+tags:
+- github
+- guide
+- misc
+- quick
+- upload
+status: active
+type: note
+moc_parent: '[[MOC - Misc]]'
+---
+
 # 📤 Upload to GitHub – Quick Guide
 
 **Target:** https://github.com/STS1983/ohlcv-cache

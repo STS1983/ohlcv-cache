@@ -1,55 +1,75 @@
-# 🚀 OHLCV Cache v1.0
+---
+title: 🚀 OHLCV Cache v2.0
+created: '2026-06-09T14:34:15'
+updated: '2026-10-10T15:32:00'
+tags:
+- cache
+- misc
+- ohlcv
+- trading
+status: active
+type: note
+moc_parent: '[[MOC - Misc]]'
+---
+
+# 🚀 OHLCV Cache v2.0
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests: 14/14 passing](https://img.shields.io/badge/tests-14%2F14%20passing-brightgreen.svg)](https://github.com/STS1983/ohlcv-cache)
+[![Tests: 57/57 passing](https://img.shields.io/badge/tests-57%2F57%20passing-brightgreen.svg)](https://github.com/STS1983/ohlcv-cache)
 
 **High-performance OHLCV data compression for trading and backtesting.**
 
-- 📦 **8x Compression** – Store 8x more candles in same RAM
+- 📦 **4-8x Compression** – Store more candles in same RAM
 - ⚡ **>10M candles/sec** – Blazing fast compression/decompression
-- 🎯 **<0.5% Error** – High-fidelity reconstruction
+- 🎯 **<0.5% Error** – High-fidelity reconstruction (with 12+ bits)
 - 💾 **Persistent Storage** – Survives restarts
 - 🔍 **Query API** – Get exactly what you need
 - 📊 **Multi-Symbol** – Support for multiple trading pairs
+- 🔧 **Per-Symbol Config** – Different bit depths per trading pair
 
-## Features
+## What's New in v2.0
 
-✅ **7-8x Compression** – Store 7x more candles in same RAM  
-✅ **<0.5% Error** – High-fidelity reconstruction  
-✅ **>10M candles/sec** – Blazing fast compression/decompression  
-✅ **Persistent Storage** – Survives restarts  
-✅ **Query API** – Get exactly what you need  
-✅ **Incremental Updates** – O(1) append operations  
-✅ **Multi-Symbol** – Support for multiple trading pairs  
+Fixed 4 critical bugs from v1.0:
+
+1. **Package Structure** — Proper Python package layout (`ohlcv_cache/` subdir + `tests/` dir)
+2. **Bits Parameter** — `bits=10/12/14/16` now actually works (uses uint16 when >8 bits)
+3. **Config Disconnect** — `CompressionConfig` is now embedded in `CacheConfig` and actually used
+4. **Delta Encoding** — Anchor-based delta encoding bounds cumulative error (no more drift)
 
 ## Installation
 
-### From PyPI (coming soon)
-```bash
-pip install ohlcv-cache
-```
-
 ### From Source
 ```bash
-git clone https://github.com/EvilStief/ohlcv-cache.git
+git clone https://github.com/STS1983/ohlcv-cache.git
 cd ohlcv-cache
 pip install -e .
 ```
 
 ### Quick Test
-```python
-from ohlcv_cache import OHLCVCache, OHLCVCompressor
+```bash
+python3 -m pytest tests/ -v
 ```
 
 ## Quick Start
 
 ```python
 import numpy as np
-from ohlcv_cache import OHLCVCache
+from ohlcv_cache import OHLCVCache, CacheConfig, CompressionConfig
 
-# Create cache
-cache = OHLCVCache(persist_to='/data/ohlcv_cache')
+# Create cache with custom compression
+config = CacheConfig(
+    compression=CompressionConfig(
+        default_bits=12,           # 12-bit quantization (4096 levels)
+        delta_encoding=True,       # Anchor-based delta encoding
+        delta_anchor_interval=32,  # Reset error every 32 candles
+    ),
+    symbol_configs={
+        'BTC/USDT': {'bits': 14},  # Higher precision for BTC
+        'ETH/USDT': {'bits': 12},
+    },
+)
+cache = OHLCVCache(config=config, persist_to='/data/ohlcv_cache')
 
 # Add candles
 ohlcv = np.random.randn(1000, 5) * 100 + 100  # [open, high, low, close, volume]
@@ -70,22 +90,16 @@ print(f"Memory saved: {stats['memory_saved_mb']:.2f} MB")
 ### OHLCVCache
 
 ```python
-# Create cache
 cache = OHLCVCache(
-    persist_to='/data/cache',  # Optional: auto-save to disk
-    max_candles=100000          # Optional: max candles in memory
+    config=CacheConfig(...),  # Optional config
+    persist_to='/data/cache', # Optional: auto-save to disk
 )
 
-# Add candles
+# Add candles (uses per-symbol config if available)
 cache.add_candles(ohlcv, symbol='BTC/USDT')
 
 # Query
-candles = cache.query(
-    symbol='BTC/USDT',
-    start=0,           # Start index (optional)
-    end=1000,          # End index (optional)
-    columns=['close']  # Specific columns (optional)
-)
+candles = cache.query(symbol='BTC/USDT', start=0, end=100, columns=['close'])
 
 # Get all candles
 all_candles = cache.get_all_candles('BTC/USDT')
@@ -104,73 +118,80 @@ stats = cache.get_stats()
 from ohlcv_cache import OHLCVCompressor
 
 compressor = OHLCVCompressor(
-    bits=8,              # Bit depth (4, 6, 8, 10)
-    delta_encoding=False, # Currently disabled (buggy)
-    adaptive_bits=True   # Adjust bits based on volatility
+    bits=12,                     # Bit depth (4-16, uses uint16 when >8)
+    delta_encoding=True,         # Anchor-based delta encoding
+    adaptive_bits=False,         # Per-column adaptive bit depth
+    delta_anchor_interval=32,    # Reset error every N candles
 )
 
-# Compress
 result = compressor.compress(ohlcv, symbol='BTC/USDT')
-print(f"Compression ratio: {result.compression_ratio:.2f}x")
-
-# Decompress
 reconstructed = compressor.decompress(result)
 ```
 
-## Configuration
+### CacheConfig + CompressionConfig
 
 ```python
-from ohlcv_cache import CacheConfig
+from ohlcv_cache import CacheConfig, CompressionConfig
 
 config = CacheConfig(
     max_candles=100000,
     persist_to='/data/cache',
     auto_save=True,
-    save_interval_seconds=300,
+    compression=CompressionConfig(
+        default_bits=12,
+        delta_encoding=True,
+        delta_anchor_interval=32,
+        adaptive_enabled=True,
+    ),
     symbol_configs={
-        'BTC/USDT': {'bits': 10},  # Higher precision
-        'ETH/USDT': {'bits': 8},
-    }
+        'BTC/USDT': {'bits': 14},
+    },
 )
-
-cache = OHLCVCache(config=config)
 ```
 
 ## Performance
 
-| Metric | Value |
-|--------|-------|
-| **Compression** | 7-8x |
-| **Error (RMSE)** | <0.5% |
-| **Speed** | >10M candles/sec |
-| **Memory** | ~5 bytes per candle |
+| Metric | 8-bit | 12-bit | 16-bit |
+|--------|-------|--------|--------|
+| **Compression** | 7.8x | 5.2x | 3.9x |
+| **Price Error** | <0.6% | <0.04% | <0.003% |
+| **Speed** | >12M cps | >10M cps | >8M cps |
+| **Memory** | ~5 B/candle | ~7 B/candle | ~10 B/candle |
 
-## Known Issues
+**Tested with:** 1000 candles (BTC sample data, seed=42)
 
-- **Delta-Encoding**: Currently disabled (causes reconstruction errors)
-- **Date-based queries**: Not yet implemented (only index-based)
+## Bug Fixes (v2.0)
 
-## Benchmarks
+### Bug 1: Package Structure
+The repo root WAS the package directory. Now properly structured:
+```
+ohlcv-cache/
+├── ohlcv_cache/     (package)
+│   ├── __init__.py
+│   ├── cache.py
+│   ├── compressor.py
+│   ├── config.py
+│   └── query.py
+├── tests/           (test suite)
+│   └── test_ohlcv_cache.py
+├── pyproject.toml
+└── README.md
+```
 
-| Metric | Value |
-|--------|-------|
-| **Compression Ratio** | 8.00x |
-| **Reconstruction Error** | <0.12% (RMSE) |
-| **Compression Speed** | >12M candles/sec |
-| **Decompression Speed** | >36M candles/sec |
-| **Memory Usage** | ~5 bytes per candle |
+### Bug 2: Bits Parameter
+`OHLCVCompressor(bits=10)` silently used 8-bit. Now:
+- `bits ≤ 8`: uses `uint8` (256 levels)
+- `bits > 8`: uses `uint16` (up to 65536 levels)
+- Adaptive bits now actually called when `adaptive_bits=True`
 
-**Tested with:** 249,307 real candles (BTC, ETH, ADA, SOL, LINK)
+### Bug 3: Config Disconnect
+`CompressionConfig` existed but was never connected to `CacheConfig` or `OHLCVCache`. Now:
+- `CompressionConfig` embedded in `CacheConfig`
+- `OHLCVCache` reads config and passes to compressor
+- Per-symbol bit overrides actually work
 
-## Contributing
-
-Contributions welcome! Please:
-
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Make your changes
-4. Run tests: `python3 -m pytest ohlcv_cache/tests.py -v`
-5. Submit a PR
+### Bug 4: Delta Encoding Error Accumulation
+Pure cumulative-sum delta encoding accumulated quantization errors without bound. Now uses **anchor-based delta encoding**: periodic absolute values (anchors) every `anchor_interval` candles, bounding maximum error to `anchor_interval` quantization steps.
 
 ## License
 
